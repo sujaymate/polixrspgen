@@ -22,7 +22,7 @@ class POLIXResponseFile:
         
     def append_inebounds(self, Elow: np.array, Ehigh: np.array) -> None:
 
-        INEBOUNDS = Table(data=[Elow, Ehigh], names=['ENERG_LO', 'ENERG_HI'], dtype=[np.float32, np.float32])
+        INEBOUNDS = Table(data=[Elow, Ehigh], names=['ENERG_LO', 'ENERG_HI'], dtype=[np.float16, np.float16])
         
         # Append the table to fits
         self.polixrspHDU.append(fits.BinTableHDU(INEBOUNDS, name="INEBOUNDS"))
@@ -30,7 +30,7 @@ class POLIXResponseFile:
     
     def append_inpabounds(self, PA: np.array) -> None:
         
-        INPAVALS = Table(data=[INPAVALS], names=['PA_IN'], dtype=[np.float32])
+        INPAVALS = Table(data=[PA], names=['PA_IN'], dtype=[np.float16])
         
         # Append the table to fits
         self.polixrspHDU.append(fits.BinTableHDU(INPAVALS, name="INPAVALS"))
@@ -44,6 +44,6 @@ class POLIXResponseFile:
     
     def write(self, outpath: Path) -> None:
         
-        if self.rsptype == "pol":
+        if self.rsptype == "polarisation":
             fname = outpath.joinpath("POLIX_polresponse.prsp")
             self.polixrspHDU.writeto(fname.as_posix(), overwrite=True)
