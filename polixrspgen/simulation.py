@@ -10,16 +10,16 @@ class Simulation:
     def __init__(self, simdatapath: Path) -> None:
         
         # Energy grid in sim
-        self.simEmin = 8
-        self.simEmax = 18
-        self.dE = 1
+        self.simEmin = 8.
+        self.simEmax = 50.
+        self.dE = 1.
         self.Ein = np.arange(self.simEmin, self.simEmax + self.dE/2, self.dE)
         self.nE = self.Ein.size
 
         # PA grid in sim
-        self.PAmin = 0
-        self.PAmax = 179
-        self.dPA = 1
+        self.PAmin = 0.
+        self.PAmax = 179.
+        self.dPA = 1.
         self.PAin = np.arange(self.PAmin, self.PAmax + self.dPA/2, self.dPA)
         self.nPA = self.PAin.size
         
@@ -108,8 +108,9 @@ class Simulation:
         # Only select single events
         events = events[events['mult']==1]
         
-        # Only select events in 1 keV range around the central energy
-        events = events[(events['energy'] >= (Ein - 0.5)) & (events['energy'] <= (Ein + 0.5))]
+        # Only select events in +/- sigma keV range around the central energy
+        sigma = Ein * (self.eres / 100) / 2.355
+        events = events[(events['energy'] >= (Ein - sigma)) & (events['energy'] <= (Ein + sigma))]
         
         # Get final anode counts
         anodeID_global = (events['detID'] - 1)*12 + events['anodeID']
