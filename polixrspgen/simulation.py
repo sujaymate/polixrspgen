@@ -9,36 +9,79 @@ class Simulation:
     
     def __init__(self, simdatapath: Path) -> None:
         
-        self.nE = 43
-        self.nPA = 180
-        self.simdatapath = simdatapath
+        # Energy grid in sim
+        self.simEmin = 8
+        self.simEmax = 18
+        self.dE = 1
+        self.Ein = np.arange(self.simEmin, self.simEmax + self.dE/2, self.dE)
+        self.nE = self.Ein.size
+
+        # PA grid in sim
+        self.PAmin = 0
+        self.PAmax = 179
+        self.dPA = 1
+        self.PAin = np.arange(self.PAmin, self.PAmax + self.dPA/2, self.dPA)
+        self.nPA = self.PAin.size
+        
+        # cal params
         self.eres = 23.
+        self.nchans = 8192
+        
         self.anode_dist = np.zeros((self.nE, self.nPA, 48))
-        self.Ein = np.zeros((self.nE,))
-        self.PAin = np.zeros((self.nPA,))
-    
+        
+        self.simdatapath = simdatapath
+           
     def read_polrsp_data(self) -> Tuple[np.ndarray, np.array, np.array]:
         
-        for i, Ein in enumerate(np.arange(8, 50.1, 1)):
-            for j, PA in enumerate(np.arange(0, 180, 1)):
+        for i, Ein in enumerate(self.Ein):
+            for j, PA in enumerate(self.PAin):
                 simevtfname = self.simdatapath.joinpath(f"XPoSatEvents_MonoE_{Ein:02.0f}_PA_{PA:03.0f}.fits.gz")
                 print(f"Processing {simevtfname.stem:s}")
                 
                 eventHDU = fits.open(simevtfname)
-                self.anode_dist[i, j, :] = self._get_anode_counts(eventHDU, Ein)
-                if self.PAin[j] == 0:
-                    self.PAin[j] = PA
-            
-            self.Ein[i] = Ein
-                
+                self.anode_dist[i, j, :] = self._get_pol_response(eventHDU, Ein)
+
         return self.anode_dist, self.Ein, self.PAin
     
     
-    def read_specrsp_data():
-        pass
+    def read_specrsp_data(self, rsptype: str) -> Tuple[np.array, np.array] or Tuple[np.array, np.array, np.ndarray]:
+
+        if rsptype == "area":
+            rspdata = np.zeros((self.nE))
+        else:
+            rspdata = np.zeros((self.nE, self.nchans))
+
+        for i, Ein in enumerate(self.Ein):
+            simevtfname = self.simdatapath.joinpath(f"XPoSatEvents_MonoE_{Ein:02.0f}_PA_999.fits.gz")
+            print(f"Processing {simevtfname.stem:s}")
+            eventHDU = fits.open(simevtfname)
+            events = eventHDU[1].data
+            in_flux = eventHDU[1].header['PRIMFLUX']
+            
+            events = self._apply_energy_resolution(events)
+
+            # Discard residual anti coincidence events
+            events = events[~(events['anodeID']==0)]
+
+            # Only select single events
+            events = events[events['mult']==1]
+
+            # create response according to the type
+            if rsptype == "area":
+                events = events[(events['energy'] >= 8.) & (events['energy'] <= 50.)]
+                rspdata[i] = events.size / in_flux  # area in cm2
+            
+            else:
+                Ebins_out = np.linspace(3-0.008/2, (self.nchans + 1)*.008, self.nchans + 1)
+                rspdata[i, :] = np.histogram(events['energy'], bins=Ebins_out)[0]
+            
+        if rsptype == "area":
+            return self.Ein, rspdata
+        else:
+            return self.Ein, Ebins_out, rspdata
     
     
-    def _apply_energy_response(self, events: fits.fitsrec.FITS_rec) -> fits.fitsrec.FITS_rec:
+    def _apply_energy_resolution(self, events: fits.fitsrec.FITS_rec) -> fits.fitsrec.FITS_rec:
 
         sigma = events['energy'] * (self.eres / 100) / 2.355
         events['energy'] = np.random.normal(events['energy'], sigma)
@@ -46,10 +89,18 @@ class Simulation:
         return events
     
     
-    def _get_anode_counts(self, eventHDU: fits.hdu.hdulist.HDUList, Ein: float) -> np.array:
+    def _get_spectral_response(self, events: fits.fitsrec.FITS_rec) -> np.ndarray:
+        pass
+
+
+    def _get_area_response(self, events: fits.fitsrec.FITS_rec) -> np.array:
+        pass
+
+    
+    def _get_pol_response(self, eventHDU: fits.hdu.hdulist.HDUList, Ein: float) -> np.array:
         
         events = eventHDU[1].data
-        events = self._apply_energy_response(events)
+        events = self._apply_energy_resolution(events)
         
         # Discard residual anti coincidence events
         events = events[~(events['anodeID']==0)]
@@ -58,7 +109,7 @@ class Simulation:
         events = events[events['mult']==1]
         
         # Only select events in 1 keV range around the central energy
-        events = events[(events['energy'] >= (Ein - 0.5)) & (events['energy'] >= (Ein + 0.5))]
+        events = events[(events['energy'] >= (Ein - 0.5)) & (events['energy'] <= (Ein + 0.5))]
         
         # Get final anode counts
         anodeID_global = (events['detID'] - 1)*12 + events['anodeID']

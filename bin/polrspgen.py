@@ -18,18 +18,33 @@ outdatapath = Path(args.outdir)
 
 # Read simulated data
 simulation = Simulation(simdatapath)
-anode_dist, Ein, PAin = simulation.read_polrsp_data()
+#anode_dist, Ein, PAin = simulation.read_polrsp_data()
+#Ein, eff_area = simulation.read_specrsp_data("area")
+Ein, Ebins_out, rspmatrix = simulation.read_specrsp_data("spectral")
 
 # Prepare to write data
 deltaE = np.diff(Ein)[0]
-Ein_min = Ein - deltaE / 2
-Ein_max = Ein + deltaE / 2
+Elow = Ein - deltaE / 2
+Ehigh = Ein + deltaE / 2
 
-anode_dist = anode_dist.astype(np.uint16)
+# anode_dist = anode_dist.astype(np.uint16)
 
-# Open response file
-rspfile = POLIXResponseFile("polarisation")
-rspfile.append_inebounds(Ein_min, Ein_max)
-rspfile.append_inpabounds(PAin)
-rspfile.append_polmatrix(anode_dist)
+# Open polarisation response file
+# rspfile = POLIXResponseFile("polarisation")
+# rspfile.append_inebounds(Elow, Ehigh)
+# rspfile.append_inpabounds(PAin)
+# rspfile.append_polmatrix(anode_dist)
+# rspfile.write(outdatapath)
+
+# Open area response file
+
+# rspfile = POLIXResponseFile("area")
+# rspfile.append_arf(Elow, Ehigh, eff_area)
+# rspfile.write(outdatapath)
+
+# Open spectral response file
+
+rspfile = POLIXResponseFile("spectral")
+rspfile.append_ebounds(Ebins_out[:-1], Ebins_out[1:], 8192)
+rspfile.append_rspmatrix(Elow, Ehigh, rspmatrix, 8192)
 rspfile.write(outdatapath)
