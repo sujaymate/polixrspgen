@@ -18,7 +18,7 @@ class Simulation:
 
         # PA grid in sim
         self.PAmin = 0.
-        self.PAmax = 179.
+        self.PAmax = 359.
         self.dPA = 1.
         self.PAin = np.arange(self.PAmin, self.PAmax + self.dPA/2, self.dPA)
         self.nPA = self.PAin.size

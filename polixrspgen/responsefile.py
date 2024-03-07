@@ -33,7 +33,7 @@ class POLIXResponseFile:
         
         # Append the table to fits
         self.polixrspHDU.append(fits.BinTableHDU(INEBOUNDS, name="INEBOUNDS"))
-        HDR =self.polixrspHDU[-1].header
+        HDR = self.polixrspHDU[-1].header
         HDR.extend(self.commonHDR)
         
     
@@ -43,7 +43,7 @@ class POLIXResponseFile:
         
         # Append the table to fits
         self.polixrspHDU.append(fits.BinTableHDU(INPAVALS, name="INPAVALS"))
-        HDR =self.polixrspHDU[-1].header
+        HDR = self.polixrspHDU[-1].header
         HDR.extend(self.commonHDR)
         
     
@@ -55,6 +55,16 @@ class POLIXResponseFile:
         HDR['EMIN'] = (8., 'Min. det energy used (in keV)')
         HDR['EMAX'] = (50., 'Min. det energy used (in KeV)')
         HDR['UNIT'] = ('counts', 'Unit of matrix value')
+        HDR.extend(self.commonHDR)
+        
+    
+    def append_anode_phases(self, phases: np.array) -> None:
+        
+        phases =  Table(data=[phases], names=['Phase'], dtype=[np.float16], units=['deg'])
+        
+        # Append anode phases to polmatrix
+        self.polixrspHDU.append(fits.BinTableHDU(phases, name="ANODE_PHASE"))
+        HDR = self.polixrspHDU[-1].header
         HDR.extend(self.commonHDR)
         
     
