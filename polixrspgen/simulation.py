@@ -73,7 +73,7 @@ class Simulation:
             
             else:
                 Ebins_out = np.linspace(3-0.008/2, (self.nchans + 1)*.008, self.nchans + 1)
-                rspdata[i, :] = np.histogram(events['energy'], bins=Ebins_out)[0]
+                rspdata[i, :] = np.histogram(events['energy'], bins=Ebins_out)[0] / in_flux
             
         if rsptype == "area":
             return self.Ein, rspdata
